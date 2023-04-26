@@ -1,9 +1,15 @@
 const Joi = require('joi');
 
 
-const authSchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
-  password: Joi.string().min(2).required(),
+exports.regSchema = Joi.object({
+    userName: Joi.string().min(3).max(30).required(),
+    firstName: Joi.string().min(3).max(30).required(),
+    lastName: Joi.string().min(3).max(30).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().pattern(new RegExp('^[a-zA-z0-9]{3,30}$')).required(),
 })
 
-module.exports = { authSchema }
+exports.logSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().pattern(new RegExp('^[a-zA-z0-9]{3,30}$')).required(),
+})

@@ -7,12 +7,15 @@ const nodemailer = require("nodemailer");
 const MAIL = process.env.MAIL;
 const PASS = process.env.PASS;
 const SECRET = process.env.SECRET;
-// const {authSchema} = require("../helpers/validation_schema")
+const {regSchema, logSchema} = require("../helpers/validation_schema")
 
 
 exports.register = (req,res)=>{
   const {email, userName, firstName, lastName ,password, is_verified} = req.body;
-  // const result = authSchema.validate
+  const {error} = regSchema.validate(req.body);
+            if(error){
+                return res.status(400).json({error: error.details[0].message});
+            }
   const emailRegex = /^(?=.*[a-zA-Z])(?=.*[0-9])[^\s@]+@[^\s@]+\.[^\s@]{2,}$/ ;
   if(!emailRegex.test(email)){
     return res.status(400).json({error: 'Invalid email format'})
@@ -26,7 +29,7 @@ exports.register = (req,res)=>{
       .then((data)=>{
           let token = generateAccessToken(email, is_verified)
           send_mail(email, token)
-          res.status(201).json(data)
+          res.status(201).json({message : "User created"})
       }).catch((err)=>{
           res.status(500).json({error:err.message})
       })
@@ -34,19 +37,44 @@ exports.register = (req,res)=>{
   }
 
 
-exports.login = (req, res)=>{
- const {email, password} = req.body;
- const hashed_password = CryptoJS.SHA256(password).toString();
- User.findOne({email: {email, password:hashed_password}})
- .then((data)=> {
-    let token = generateAccessToken(email , data.role);
-    if(data.email === email && data.password === hashed_password && data.is_verified == 1){
-        res.send(JSON.stringify({status: "Logged in", jwt: token}))
-    }else{
-      res.send(JSON.stringify({status: "Not logged in"}));
+  exports.login = (req, res)=>{
+    const {email, password} = req.body;
+    const {error} = logSchema.validate(req.body);
+    console.log(email)
+    if(error){
+        return res.status(400).json({error: error.details[0].message});
     }
- }) 
+    const hashed_password = CryptoJS.SHA256(password).toString();
+    User.findOne({where: {email:email}})
+    .then((data)=> {
+      console.log(data.password, hashed_password)
+        if(data && data.password === hashed_password && data.is_verified == 1){
+            let token = generateAccessToken(email, data.role);
+            res.send(JSON.stringify({status: "Logged in", jwt: token, role: data.role, is_verified: data.is_verified}))
+        }else{
+            res.send(JSON.stringify({status: "Not logged in"}));
+        }
+    }) 
 }
+
+
+// exports.login = (req, res)=>{
+//  const {email, password} = req.body;
+//  const {error} = logSchema.validate(req.body);
+//             if(error){
+//                 return res.status(400).json({error: error.details[0].message});
+//             }
+//  const hashed_password = CryptoJS.SHA256(password).toString();
+//  User.findOne({email: {email, password:hashed_password}})
+//  .then((data)=> {
+//     let token = generateAccessToken(email , data.role);
+//     if(data.email === email && data.password === hashed_password && data.is_verified == 1){
+//         res.send(JSON.stringify({status: "Logged in", jwt: token, role:data.role}))
+//     }else{
+//       res.send(JSON.stringify({status: "Not logged in"}));
+//     }
+//  }) 
+// }
 
 exports.getAllUsers = (req,res)=> {
   User.findAll()
@@ -67,7 +95,7 @@ send_mail = (mail,token)=>{
     from: MAIL,
     to: mail,
     subject: "Sending Email using Node.js",
-    text: ` sexmel http://localhost:3000/verify/${token}`
+    text: ` sexmel http://localhost:5000/verify/${token}`
   }
 
   transporter.sendMail(mailOptions, function(err, info){

@@ -2,9 +2,9 @@ const {getAllUsers, register, login, deleteUser , verified} = require('../contro
 const {authenticateTokenAdmin} = require("../middleware/jwt_authenticate")
 
 exports.create_user_routes = (app) =>{
-  app.get("/", authenticateTokenAdmin ,getAllUsers);
+  app.get("/users", getAllUsers);
   app.post("/register" ,register);
   app.post("/login",login);
-  app.delete("/user/:id", authenticateTokenAdmin ,deleteUser)
+  app.delete("/user/:id", deleteUser)
   app.get('/verify/:token', verified)
 }
